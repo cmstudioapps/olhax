@@ -1,0 +1,44 @@
+{
+  "name": "olhax",
+  "version": "0.1.0",
+  "description": "Biblioteca simples de automacao visual e reconhecimento de imagens na tela.",
+  "main": "src/index.js",
+  "module": "src/index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./src/index.mjs",
+      "require": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "examples",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/run.mjs",
+    "lint": "node --check src/index.js && node --check src/index.mjs && node --check src/vision/input.js && node --check src/vision/template-engine.js && node --check src/automation/mouse.js"
+  },
+  "keywords": [
+    "visual-automation",
+    "image-recognition",
+    "template-matching",
+    "mouse",
+    "automation",
+    "olhax"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "4.2.2",
+    "sharp": "0.33.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
