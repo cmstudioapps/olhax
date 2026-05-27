@@ -28,6 +28,12 @@ CommonJS:
 const visao = require("olhax");
 ```
 
+Ou importando funcoes diretas:
+
+```js
+const { print, encontrar, clicar } = require("olhax");
+```
+
 ES Modules / `"type": "module"`:
 
 ```js
@@ -62,6 +68,37 @@ async function main() {
 main().catch(console.error);
 ```
 
+Se quiser que a propria OLHAX tire o print da tela:
+
+```js
+const visao = require("olhax");
+
+async function main() {
+  const tela = await visao.print();
+  const alvo = await visao.encontrar(tela, "icone.png");
+
+  if (alvo) {
+    await visao.clicar(alvo);
+  }
+}
+
+main().catch(console.error);
+```
+
+O mesmo fluxo tambem funciona com funcoes diretas:
+
+```js
+const { print, encontrar } = require("olhax");
+
+async function main() {
+  const tela = await print();
+  const alvo = await encontrar(tela, "icone.png");
+  console.log(alvo);
+}
+
+main().catch(console.error);
+```
+
 English:
 
 ```js
@@ -77,6 +114,37 @@ async function main() {
 
   console.log(target);
   await olhax.click(target);
+}
+
+main().catch(console.error);
+```
+
+If you want OLHAX to capture the screen first:
+
+```js
+const olhax = require("olhax");
+
+async function main() {
+  const screen = await olhax.print();
+  const target = await olhax.find(screen, "icon.png");
+
+  if (target) {
+    await olhax.click(target);
+  }
+}
+
+main().catch(console.error);
+```
+
+The same flow also works with direct functions:
+
+```js
+const { print, find } = require("olhax");
+
+async function main() {
+  const screen = await print();
+  const target = await find(screen, "icon.png");
+  console.log(target);
 }
 
 main().catch(console.error);
@@ -152,6 +220,13 @@ Clicar no alvo encontrado:
 await visao.clicar("print.png", "icone.png");
 ```
 
+Tirar print e procurar nele:
+
+```js
+const tela = await visao.print();
+const alvo = await visao.encontrar(tela, "icone.png");
+```
+
 Levar o mouse ate um campo, clicar e escrever:
 
 ```js
@@ -216,6 +291,25 @@ Isso depende do suporte a screenshot do backend. Se a captura de tela nao estive
 
 ```js
 await visao.clicar("print.png", "icone.png");
+```
+
+Tambem da para capturar manualmente e reutilizar o mesmo print em varias buscas:
+
+```js
+const tela = await visao.print();
+
+const salvar = await visao.encontrar(tela, "salvar.png");
+const cancelar = await visao.encontrar(tela, "cancelar.png");
+```
+
+Aliases de captura:
+
+```js
+await visao.print();
+await visao.capturar();
+await visao.screenshot();
+
+await olhax.capture();
 ```
 
 ## Arquivos, buffers e base64 / Files, Buffers And Base64
@@ -369,6 +463,26 @@ const google = await visao.encontrar({
 await visao.clicar(google);
 ```
 
+As acoes tambem podem usar o nome lembrado diretamente. Assim o dev nao precisa reenviar `print.png` e `google.png`:
+
+```js
+await visao.clicar({ lembrar: "google" });
+await visao.moverSuave({ lembrar: "google" });
+```
+
+Para escrever em um campo salvo na memoria:
+
+```js
+await visao.encontrar("print.png", "campo-email.png", {
+  lembrar: "campo-email"
+});
+
+await visao.escrever({
+  lembrar: "campo-email",
+  texto: "dev@olhax.dev"
+});
+```
+
 Tambem funciona em ingles:
 
 ```js
@@ -378,6 +492,15 @@ await olhax.find("screenshot.png", "google.png", {
 
 const google = await olhax.recall("google");
 await olhax.click(google);
+
+await olhax.find("screenshot.png", "email-field.png", {
+  remember: "email-field"
+});
+
+await olhax.type({
+  remember: "email-field",
+  text: "dev@olhax.dev"
+});
 ```
 
 Se voce quiser preferir a posicao salva mesmo quando passar imagem de novo:
@@ -495,6 +618,15 @@ Imagem na tela atual, quando screenshot estiver disponivel:
 
 ```js
 await visao.escrever("campo.png", "usuario@email.com");
+```
+
+Campo lembrado em JSON, sem passar as imagens de novo:
+
+```js
+await visao.escrever({
+  lembrar: "campo-email",
+  texto: "usuario@email.com"
+});
 ```
 
 Com opcoes:
@@ -750,6 +882,8 @@ await visao.clicar("print.png", "icone.png", {
 | `lembrado` | `recall` | Alias para recuperar |
 | `esquecer` | `forget` | Remove uma posicao salva |
 | `listarLembrados` | `listRemembered` | Lista posicoes salvas |
+| `print` | `capture` | Captura a tela e retorna um Buffer |
+| `capturar` | `screenshot` | Alias de captura de tela |
 | `clicar` | `click` | Move e clica |
 | `duploClicar` | `doubleClick` | Move e da duplo clique |
 | `cliqueDireito` | `rightClick` | Move e clica com botao direito |

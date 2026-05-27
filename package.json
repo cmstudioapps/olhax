@@ -1,6 +1,6 @@
 {
   "name": "olhax",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Biblioteca simples de automacao visual e reconhecimento de imagens na tela.",
   "main": "src/index.js",
   "module": "src/index.mjs",

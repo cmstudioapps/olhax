@@ -55,5 +55,8 @@ module.exports = {
   digitar: mouse.digitar,
   write: mouse.write,
   mic: audio.mic,
-  screenshot: mouse.screenshot
+  screenshot: mouse.screenshot,
+  print: mouse.screenshot,
+  capturar: mouse.screenshot,
+  capture: mouse.screenshot
 };

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import olhax, { encontrar, find, moverSuave, escrever, mic, lembrar } from "olhax";
+import olhax, { encontrar, find, moverSuave, escrever, mic, lembrar, print } from "olhax";
 
 test("pacote funciona em projetos type module com default e named exports", () => {
   assert.equal(typeof olhax.encontrar, "function");
@@ -10,4 +10,5 @@ test("pacote funciona em projetos type module com default e named exports", () =
   assert.equal(escrever, olhax.escrever);
   assert.equal(mic, olhax.mic);
   assert.equal(lembrar, olhax.lembrar);
+  assert.equal(print, olhax.print);
 });

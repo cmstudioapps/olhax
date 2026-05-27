@@ -51,5 +51,8 @@ export const digitar = api.digitar;
 export const write = api.write;
 export const mic = api.mic;
 export const screenshot = api.screenshot;
+export const print = api.print;
+export const capturar = api.capturar;
+export const capture = api.capture;
 
 export default api;

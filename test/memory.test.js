@@ -54,3 +54,47 @@ test("lembrar salva match em JSON e encontrar recupera sem imagens", async () =>
   await olhax.esquecer("google", { memoryDir });
   assert.equal(await olhax.lembrado("google", { memoryDir }), null);
 });
+
+test("escrever usa posicao lembrada sem reenviar imagens", async () => {
+  const memoryDir = await fs.mkdtemp(path.join(os.tmpdir(), "olhax-write-memory-"));
+  const events = [];
+  const backend = {
+    async getPosition() {
+      return { x: 0, y: 0 };
+    },
+    async moveTo(x, y) {
+      events.push({ type: "move", x, y });
+    },
+    async click(button) {
+      events.push({ type: "click", button });
+    },
+    async typeText(text) {
+      events.push({ type: "type", text });
+    }
+  };
+
+  await olhax.lembrar("campo-email", {
+    x: 80,
+    y: 120,
+    width: 100,
+    height: 20,
+    score: 1
+  }, { memoryDir });
+
+  const result = await olhax.escrever({
+    lembrar: "campo-email",
+    texto: "dev@olhax.dev",
+    memoryDir,
+    automation: backend,
+    duration: 0,
+    minSteps: 4,
+    easing: "linear",
+    afterClickDelay: 0
+  });
+
+  assert.equal(result.match.remembered, true);
+  assert.equal(result.text, "dev@olhax.dev");
+  assert.ok(events.some((event) => event.type === "move" && event.x === 130 && event.y === 130));
+  assert.deepEqual(events.at(-2), { type: "click", button: "left" });
+  assert.deepEqual(events.at(-1), { type: "type", text: "dev@olhax.dev" });
+});

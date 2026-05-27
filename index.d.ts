@@ -258,3 +258,6 @@ export function scrollUntil(base: ImageInput, alvo: ImageInput, options?: FindOp
 export function scrollUntil(alvo: ImageInput, options?: FindOptions): Promise<Match>;
 export function mic(options?: MicOptions): MicController;
 export function screenshot(options?: ConfigOptions): Promise<Buffer>;
+export const print: typeof screenshot;
+export const capturar: typeof screenshot;
+export const capture: typeof screenshot;

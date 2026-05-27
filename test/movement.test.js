@@ -72,3 +72,18 @@ test("escrever move, clica e digita no backend customizado", async () => {
   assert.deepEqual(events.at(-1), { type: "type", text: "Ola OLHAX" });
   assert.ok(events.some((event) => event.type === "move" && event.x === 30 && event.y === 10));
 });
+
+test("print e aliases capturam imagem pelo backend customizado", async () => {
+  const image = Buffer.from("fake-image");
+  olhax.configurar({
+    automation: {
+      async screenshot() {
+        return image;
+      }
+    }
+  });
+
+  assert.equal(await olhax.print(), image);
+  assert.equal(await olhax.capturar(), image);
+  assert.equal(await olhax.capture(), image);
+});
