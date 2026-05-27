@@ -1,6 +1,7 @@
 const templateEngine = require("./template-engine");
 const { obterConfig } = require("../config");
 const { parseFindArgs } = require("../utils/args");
+const memory = require("../memory/store");
 
 function getEngine(options) {
   return options.engine || templateEngine;
@@ -8,7 +9,17 @@ function getEngine(options) {
 
 async function encontrar(...args) {
   const options = obterConfig(parseFindArgs(args));
-  return getEngine(options).find(options);
+  const key = memory.keyFromOptions(options);
+
+  if (key && (!options.base || !options.target || memory.shouldPreferRemembered(options))) {
+    const remembered = await memory.lembrado(key, options);
+    if (remembered) return remembered;
+    if (!options.base || !options.target) return null;
+  }
+
+  const match = await getEngine(options).find(options);
+  if (key && match) await memory.lembrar(key, match, options);
+  return match;
 }
 
 async function encontrarTodos(...args) {
@@ -39,5 +50,14 @@ module.exports = {
   compare: comparar,
   centro,
   center: centro,
+  lembrar: memory.lembrar,
+  remember: memory.lembrar,
+  lembrado: memory.lembrado,
+  remembered: memory.lembrado,
+  recall: memory.lembrado,
+  esquecer: memory.esquecer,
+  forget: memory.esquecer,
+  listarLembrados: memory.listarLembrados,
+  listRemembered: memory.listarLembrados,
   templateEngine
 };

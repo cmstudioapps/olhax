@@ -27,6 +27,7 @@ async function main() {
   });
 
   await visao.duploClicar(botao);
+  await visao.escrever({ x: botao.centerX, y: botao.centerY + 48 }, "texto pronto");
 }
 
 main().catch(console.error);

@@ -19,7 +19,7 @@ function createNutBackend(language) {
     throw createError("automationUnavailable", language, { cause: error });
   }
 
-  const { mouse, Point, screen } = nut;
+  const { mouse, Point, screen, keyboard } = nut;
   if (!mouse || !Point) throw createError("automationUnavailable", language);
 
   return {
@@ -69,6 +69,13 @@ function createNutBackend(language) {
       if (dy > 0 && typeof mouse.scrollUp === "function") await mouse.scrollUp(vertical);
       if (dx < 0 && typeof mouse.scrollLeft === "function") await mouse.scrollLeft(horizontal);
       if (dx > 0 && typeof mouse.scrollRight === "function") await mouse.scrollRight(horizontal);
+    },
+
+    async typeText(text) {
+      if (keyboard && typeof keyboard.type === "function") {
+        return keyboard.type(String(text));
+      }
+      throw createError("keyboardUnavailable", language);
     },
 
     async screenshot() {

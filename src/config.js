@@ -16,6 +16,30 @@ const state = {
     delay: 80,
     button: "left"
   },
+  write: {
+    afterClickDelay: 80
+  },
+  mic: {
+    sampleRate: 16000,
+    channels: 1,
+    bitDepth: 16,
+    threshold: 0.015,
+    silenceMs: 800,
+    preSpeechMs: 250,
+    minSpeechMs: 250,
+    maxSegmentMs: 30000,
+    lang: "pt",
+    modelPath: undefined,
+    modelsDir: undefined,
+    downloadModel: true,
+    words: true,
+    partialWords: false
+  },
+  memory: {
+    file: "olhax/lembrados",
+    ttlMs: null,
+    prefer: false
+  },
   scroll: {
     amount: 600,
     stepDelay: 120,

@@ -1,7 +1,7 @@
 const { obterConfig } = require("../config");
 const { encontrar } = require("../vision");
 const { createError } = require("../i18n");
-const { parseTargetArgs, isImageInput, toPoint } = require("../utils/args");
+const { parseTargetArgs, parseWriteArgs, isImageInput, toPoint } = require("../utils/args");
 const { sleep } = require("../utils/time");
 const { pathBetween } = require("./easing");
 const { getBackend } = require("./backend");
@@ -27,6 +27,10 @@ async function resolvePoint(parsed, options) {
 async function moverSuave(...args) {
   const parsed = parseTargetArgs(args);
   const options = obterConfig({ ...(parsed.options || {}) });
+  return moveParsedTarget(parsed, options);
+}
+
+async function moveParsedTarget(parsed, options) {
   const movement = { ...options.movement, ...(parsed.options || {}) };
   const backend = getBackend(options);
   const destination = await resolvePoint(parsed, options);
@@ -197,6 +201,33 @@ async function scrollUntil(...args) {
   throw createError("notFound", options.language);
 }
 
+async function escrever(...args) {
+  const parsed = parseWriteArgs(args);
+  const options = obterConfig({ ...(parsed.options || {}) });
+
+  if (parsed.text === undefined || parsed.text === null) {
+    throw createError("missingText", options.language);
+  }
+
+  const backend = getBackend(options);
+  const moved = await moveParsedTarget(parsed.target, options);
+  await backend.click(options.button || options.click.button || "left");
+
+  const delay = options.afterClickDelay ?? options.write.afterClickDelay;
+  if (delay > 0) await sleep(delay);
+
+  if (typeof backend.typeText !== "function") {
+    throw createError("keyboardUnavailable", options.language);
+  }
+
+  await backend.typeText(String(parsed.text));
+
+  return {
+    ...moved,
+    text: String(parsed.text)
+  };
+}
+
 module.exports = {
   mover,
   move: mover,
@@ -219,5 +250,9 @@ module.exports = {
   drag: arrastar,
   aguardar,
   waitFor: aguardar,
+  escrever,
+  type: escrever,
+  digitar: escrever,
+  write: escrever,
   screenshot
 };

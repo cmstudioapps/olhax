@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { EventEmitter } from "node:events";
 
 /** File path, base64 string, data:image/*;base64 URI, Buffer, or Uint8Array. */
 export type ImageInput = string | Buffer | Uint8Array;
@@ -14,6 +15,10 @@ export interface Match {
   centerY: number;
   score: number;
   scale?: number;
+  remembered?: boolean;
+  lembrado?: boolean;
+  key?: string;
+  updatedAt?: string;
 }
 
 export interface Point {
@@ -43,6 +48,21 @@ export interface FindOptions {
   sharpen?: boolean;
   normalize?: boolean;
   language?: Language;
+  lembrar?: string | boolean;
+  remember?: string | boolean;
+  memoria?: string | boolean;
+  memoryKey?: string;
+  nome?: string;
+  name?: string;
+  usarLembrado?: boolean;
+  useRemembered?: boolean;
+  preferirLembrado?: boolean;
+  preferRemembered?: boolean;
+  memoryDir?: string;
+  lembrarDir?: string;
+  memoryFile?: string;
+  arquivoMemoria?: string;
+  ttlMs?: number;
 }
 
 export interface MoveOptions extends FindOptions {
@@ -50,6 +70,14 @@ export interface MoveOptions extends FindOptions {
   easing?: EasingName | ((t: number) => number);
   minSteps?: number;
   speed?: number;
+}
+
+export interface WriteOptions extends MoveOptions {
+  texto?: string | number | boolean;
+  text?: string | number | boolean;
+  value?: string | number | boolean;
+  content?: string | number | boolean;
+  afterClickDelay?: number;
 }
 
 export interface ConfigOptions extends FindOptions {
@@ -60,13 +88,100 @@ export interface ConfigOptions extends FindOptions {
     delay?: number;
     button?: "left" | "right" | "middle";
   };
+  write?: {
+    afterClickDelay?: number;
+  };
   scroll?: {
     amount?: number;
     stepDelay?: number;
     maxScrolls?: number;
   };
+  mic?: MicOptions;
+  memory?: {
+    file?: string;
+    ttlMs?: number | null;
+    prefer?: boolean;
+  };
   engine?: unknown;
   automation?: unknown;
+}
+
+export interface MicAudioEvent {
+  audio: Buffer;
+  rms: number;
+  speech: boolean;
+  durationMs: number;
+}
+
+export interface MicSegment {
+  audio: Buffer;
+  pcm: Buffer;
+  wav: Buffer;
+  durationMs: number;
+  reason: "silence" | "stop" | "maxSegmentMs" | string;
+  sampleRate: number;
+  channels: number;
+  bitDepth: number;
+}
+
+export interface MicTranscription extends MicSegment {
+  text: string;
+  raw?: unknown;
+}
+
+export interface MicModelEvent {
+  phase?: "download" | "extract" | "ready" | string;
+  model?: string;
+  loaded?: number;
+  total?: number;
+  path?: string;
+}
+
+export interface MicOptions {
+  sampleRate?: number;
+  channels?: number;
+  bitDepth?: number;
+  threshold?: number;
+  silenceMs?: number;
+  preSpeechMs?: number;
+  minSpeechMs?: number;
+  maxSegmentMs?: number;
+  lang?: "pt" | "en" | string;
+  idioma?: "pt" | "en" | string;
+  modelPath?: string;
+  modelsDir?: string;
+  downloadModel?: boolean;
+  baixarModelo?: boolean;
+  grammar?: string[];
+  words?: boolean;
+  partialWords?: boolean;
+  voskLogLevel?: number;
+  device?: string;
+  debug?: boolean;
+  autoStart?: boolean;
+  recorder?: {
+    stream: EventEmitter;
+    start(): void;
+    stop?(): void;
+  };
+}
+
+export interface MicController extends EventEmitter {
+  start(): this;
+  iniciar(): this;
+  stop(): this;
+  parar(): this;
+  isListening(): boolean;
+  ouvindo(): boolean;
+  on(event: "audio", listener: (event: MicAudioEvent) => void): this;
+  on(event: "falaInicio" | "speechStart", listener: (event: { rms: number }) => void): this;
+  on(event: "falaFim" | "speechEnd", listener: (event: MicSegment) => void): this;
+  on(event: "transcricaoParcial" | "partialTranscription", listener: (event: MicTranscription) => void): this;
+  on(event: "transcricao" | "transcription", listener: (event: MicTranscription) => void): this;
+  on(event: "modelo" | "model", listener: (event: MicModelEvent) => void): this;
+  on(event: "inicio" | "start", listener: (event: { sampleRate: number; modelPath?: string }) => void): this;
+  on(event: "fim" | "stop", listener: () => void): this;
+  on(event: "erro" | "error", listener: (error: Error) => void): this;
 }
 
 export function configurar(options?: ConfigOptions): ConfigOptions;
@@ -88,6 +203,15 @@ export const compare: typeof comparar;
 
 export function centro(match: Match): Point;
 export const center: typeof centro;
+export function lembrar(key: string, match: Match | Point, options?: ConfigOptions): Promise<Match | null>;
+export const remember: typeof lembrar;
+export function lembrado(key: string, options?: ConfigOptions): Promise<Match | null>;
+export const remembered: typeof lembrado;
+export const recall: typeof lembrado;
+export function esquecer(key: string, options?: ConfigOptions): Promise<boolean>;
+export const forget: typeof esquecer;
+export function listarLembrados(options?: ConfigOptions): Promise<Record<string, Match>>;
+export const listRemembered: typeof listarLembrados;
 
 export function mover(destino: Point | Match, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
 export function mover(alvo: ImageInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
@@ -104,6 +228,14 @@ export const duploClicar: typeof clicar;
 export const doubleClick: typeof clicar;
 export const cliqueDireito: typeof clicar;
 export const rightClick: typeof clicar;
+
+export function escrever(destino: Point | Match, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
+export function escrever(alvo: ImageInput, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
+export function escrever(base: ImageInput, alvo: ImageInput, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
+export function escrever(options: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
+export const type: typeof escrever;
+export const digitar: typeof escrever;
+export const write: typeof escrever;
 
 export function pressionar(button?: "left" | "right" | "middle", options?: ConfigOptions): Promise<void>;
 export const press: typeof pressionar;
@@ -124,4 +256,5 @@ export const waitFor: typeof aguardar;
 
 export function scrollUntil(base: ImageInput, alvo: ImageInput, options?: FindOptions): Promise<Match>;
 export function scrollUntil(alvo: ImageInput, options?: FindOptions): Promise<Match>;
+export function mic(options?: MicOptions): MicController;
 export function screenshot(options?: ConfigOptions): Promise<Buffer>;

@@ -1,6 +1,7 @@
 const { configurar, config, obterConfig } = require("./config");
 const vision = require("./vision");
 const mouse = require("./automation/mouse");
+const audio = require("./audio/mic");
 const { messages } = require("./i18n");
 
 module.exports = {
@@ -18,6 +19,15 @@ module.exports = {
   compare: vision.compare,
   centro: vision.centro,
   center: vision.center,
+  lembrar: vision.lembrar,
+  remember: vision.remember,
+  lembrado: vision.lembrado,
+  remembered: vision.remembered,
+  recall: vision.recall,
+  esquecer: vision.esquecer,
+  forget: vision.forget,
+  listarLembrados: vision.listarLembrados,
+  listRemembered: vision.listRemembered,
 
   mover: mouse.mover,
   move: mouse.move,
@@ -40,5 +50,10 @@ module.exports = {
   drag: mouse.drag,
   aguardar: mouse.aguardar,
   waitFor: mouse.waitFor,
+  escrever: mouse.escrever,
+  type: mouse.type,
+  digitar: mouse.digitar,
+  write: mouse.write,
+  mic: audio.mic,
   screenshot: mouse.screenshot
 };

@@ -24,6 +24,10 @@ function pick(obj, keys) {
   return undefined;
 }
 
+function pickText(obj) {
+  return pick(obj, ["texto", "text", "valor", "value", "conteudo", "content"]);
+}
+
 function parseFindArgs(args) {
   if (args.length === 1 && args[0] && typeof args[0] === "object" && !isImageInput(args[0])) {
     const options = args[0];
@@ -63,10 +67,67 @@ function parseTargetArgs(args) {
   return { find: parseFindArgs(args), options: args[2] || {} };
 }
 
+function parseWriteArgs(args) {
+  if (args.length === 1 && args[0] && typeof args[0] === "object" && !isImageInput(args[0])) {
+    return {
+      target: parseTargetArgs([args[0]]),
+      text: pickText(args[0]),
+      options: args[0]
+    };
+  }
+
+  if (isPoint(args[0])) {
+    return {
+      target: { point: toPoint(args[0]), options: args[2] || {} },
+      text: args[1],
+      options: args[2] || {}
+    };
+  }
+
+  if (isImageInput(args[0]) && isImageInput(args[1]) && args.length >= 3) {
+    const options = typeof args[2] === "object" && !isImageInput(args[2]) ? args[2] : args[3] || {};
+    return {
+      target: {
+        find: {
+          ...options,
+          base: args[0],
+          target: args[1]
+        },
+        options
+      },
+      text: typeof args[2] === "object" && !isImageInput(args[2]) ? pickText(args[2]) : args[2],
+      options
+    };
+  }
+
+  if (isImageInput(args[0]) && args.length >= 2) {
+    return {
+      target: { find: { target: args[0] }, options: args[2] || {} },
+      text: args[1],
+      options: args[2] || {}
+    };
+  }
+
+  if (args[0] && typeof args[0] === "object") {
+    return {
+      target: parseTargetArgs([args[0]]),
+      text: args[1] ?? pickText(args[0]),
+      options: args[2] || args[0]
+    };
+  }
+
+  return {
+    target: parseTargetArgs(args),
+    text: args[1],
+    options: args[2] || {}
+  };
+}
+
 module.exports = {
   isImageInput,
   isPoint,
   toPoint,
   parseFindArgs,
-  parseTargetArgs
+  parseTargetArgs,
+  parseWriteArgs
 };

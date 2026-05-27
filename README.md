@@ -130,6 +130,14 @@ Encontrar uma imagem:
 const alvo = await visao.encontrar("print.png", "icone.png");
 ```
 
+Encontrar e lembrar a posicao para usar depois:
+
+```js
+await visao.encontrar("print.png", "google.png", {
+  lembrar: "google"
+});
+```
+
 Encontrar todas as ocorrencias:
 
 ```js
@@ -142,6 +150,12 @@ Clicar no alvo encontrado:
 
 ```js
 await visao.clicar("print.png", "icone.png");
+```
+
+Levar o mouse ate um campo, clicar e escrever:
+
+```js
+await visao.escrever({ x: 120, y: 300 }, "meu texto");
 ```
 
 Mover suavemente ate uma coordenada:
@@ -333,6 +347,84 @@ Opcoes uteis:
 - `blur`: aplica desfoque leve antes da busca.
 - `searchStep`: pula pixels durante a busca. Maior e mais rapido, mas menos preciso.
 
+## Lembrar posicoes / Remember Positions
+
+Quando `lembrar` / `remember` e usado, a OLHAX salva o match em JSON com Bancoz. Depois o dev pode recuperar a coordenada pelo nome, sem reenviar a imagem.
+
+Primeira vez, procurando pela imagem:
+
+```js
+await visao.encontrar("print.png", "google.png", {
+  lembrar: "google"
+});
+```
+
+Depois, usando so o nome lembrado:
+
+```js
+const google = await visao.encontrar({
+  lembrar: "google"
+});
+
+await visao.clicar(google);
+```
+
+Tambem funciona em ingles:
+
+```js
+await olhax.find("screenshot.png", "google.png", {
+  remember: "google"
+});
+
+const google = await olhax.recall("google");
+await olhax.click(google);
+```
+
+Se voce quiser preferir a posicao salva mesmo quando passar imagem de novo:
+
+```js
+const google = await visao.encontrar("print.png", "google.png", {
+  lembrar: "google",
+  usarLembrado: true
+});
+```
+
+Funcoes diretas:
+
+```js
+await visao.lembrar("google", { x: 100, y: 200, width: 40, height: 20 });
+const google = await visao.lembrado("google");
+const todos = await visao.listarLembrados();
+await visao.esquecer("google");
+```
+
+Por padrao, os dados ficam em:
+
+```txt
+BANCO Z/
+  olhax/
+    lembrados.json
+```
+
+Configurar pasta/arquivo:
+
+```js
+visao.configurar({
+  memory: {
+    file: "olhax/posicoes",
+    ttlMs: null,
+    prefer: false
+  }
+});
+
+await visao.encontrar("print.png", "google.png", {
+  lembrar: "google",
+  memoryDir: "./dados"
+});
+```
+
+Esse recurso usa `bancoz` por baixo para persistir JSON de forma simples.
+
 ## Mouse e cliques / Mouse And Clicks
 
 Todas estas chamadas movem o mouse suavemente antes da acao:
@@ -372,6 +464,144 @@ await olhax.rightClick("screenshot.png", "icon.png");
 await olhax.press("left");
 await olhax.release("left");
 ```
+
+## Escrever / Type Text
+
+`escrever` / `type` move o mouse ate o destino, clica e entao digita o texto.
+
+Coordenada:
+
+```js
+await visao.escrever({ x: 120, y: 300 }, "Ola mundo");
+```
+
+Match ja encontrado:
+
+```js
+const campo = await visao.encontrar("print.png", "campo.png");
+
+if (campo) {
+  await visao.escrever(campo, "usuario@email.com");
+}
+```
+
+Imagem dentro de uma base:
+
+```js
+await visao.escrever("print.png", "campo.png", "usuario@email.com");
+```
+
+Imagem na tela atual, quando screenshot estiver disponivel:
+
+```js
+await visao.escrever("campo.png", "usuario@email.com");
+```
+
+Com opcoes:
+
+```js
+await visao.escrever(
+  { x: 120, y: 300 },
+  "texto",
+  {
+    duration: 300,
+    easing: "easeInOut",
+    afterClickDelay: 100
+  }
+);
+```
+
+English aliases:
+
+```js
+await olhax.type({ x: 120, y: 300 }, "hello");
+await olhax.write("screenshot.png", "field.png", "hello");
+```
+
+## Audio e microfone / Audio And Microphone
+
+`mic()` escuta o microfone, detecta quando alguem comeca a falar, detecta silencio e transcreve automaticamente com Vosk offline/local.
+
+Nao usa OpenAI, GPT, Whisper ou servico em nuvem. Na primeira execucao, a OLHAX pode baixar e cachear um modelo pequeno do Vosk para o idioma escolhido.
+
+```js
+const ouvido = visao.mic();
+
+ouvido.on("falaInicio", () => {
+  console.log("Comecou a falar");
+});
+
+ouvido.on("falaFim", ({ wav, durationMs }) => {
+  console.log("Parou de falar", { bytes: wav.length, durationMs });
+});
+
+ouvido.on("transcricao", ({ text }) => {
+  console.log("Texto:", text);
+});
+
+ouvido.on("erro", console.error);
+```
+
+English:
+
+```js
+const listener = olhax.mic();
+
+listener.on("speechStart", () => {
+  console.log("Speech started");
+});
+
+listener.on("speechEnd", ({ wav, durationMs }) => {
+  console.log("Speech ended", { bytes: wav.length, durationMs });
+});
+
+listener.on("transcription", ({ text }) => {
+  console.log("Text:", text);
+});
+
+listener.on("error", console.error);
+```
+
+Idioma:
+
+```js
+const ouvido = visao.mic({
+  lang: "pt"
+});
+```
+
+English:
+
+```js
+const listener = olhax.mic({
+  lang: "en"
+});
+```
+
+Controle manual:
+
+```js
+const ouvido = visao.mic({ autoStart: false });
+
+ouvido.iniciar();
+// ...
+ouvido.parar();
+```
+
+Opcoes uteis:
+
+- `threshold`: sensibilidade da deteccao de voz.
+- `silenceMs`: quanto tempo de silencio encerra um trecho.
+- `preSpeechMs`: audio preservado antes do inicio detectado.
+- `minSpeechMs`: duracao minima para aceitar um trecho.
+- `maxSegmentMs`: duracao maxima de um trecho continuo.
+- `sampleRate`: padrao `16000`.
+- `lang`: `"pt"` ou `"en"` para baixar o modelo pequeno padrao.
+- `modelPath`: caminho para um modelo Vosk ja baixado.
+- `modelsDir`: pasta de cache dos modelos.
+- `downloadModel`: `false` impede download automatico.
+
+No Windows/macOS, o pacote `mic` normalmente usa `sox`. No Linux, usa `arecord`/ALSA. Se o ambiente nao tiver gravador de sistema disponivel, forneca um `recorder` customizado.
 
 ## Movimento suave / Smooth Movement
 
@@ -473,6 +703,21 @@ visao.configurar({
     delay: 80,
     button: "left"
   },
+  write: {
+    afterClickDelay: 80
+  },
+  mic: {
+    sampleRate: 16000,
+    lang: "pt",
+    threshold: 0.015,
+    silenceMs: 800,
+    downloadModel: true
+  },
+  memory: {
+    file: "olhax/lembrados",
+    ttlMs: null,
+    prefer: false
+  },
   scroll: {
     amount: -600,
     stepDelay: 120,
@@ -500,9 +745,17 @@ await visao.clicar("print.png", "icone.png", {
 | `encontrarTodos` | `findAll` | Encontra varios matches |
 | `comparar` | `compare` | Retorna o melhor candidato |
 | `centro` | `center` | Retorna `{ x, y }` do centro |
+| `lembrar` | `remember` | Salva uma posicao em JSON |
+| `lembrado` | `remembered` | Recupera uma posicao salva |
+| `lembrado` | `recall` | Alias para recuperar |
+| `esquecer` | `forget` | Remove uma posicao salva |
+| `listarLembrados` | `listRemembered` | Lista posicoes salvas |
 | `clicar` | `click` | Move e clica |
 | `duploClicar` | `doubleClick` | Move e da duplo clique |
 | `cliqueDireito` | `rightClick` | Move e clica com botao direito |
+| `escrever` | `type` | Move, clica e digita texto |
+| `digitar` | `write` | Alias para escrever texto |
+| `mic` | `mic` | Escuta microfone e emite eventos de fala |
 | `mover` | `move` | Alias de movimento suave |
 | `moverSuave` | `moveSmooth` | Move com interpolacao |
 | `scrollar` | `scroll` | Faz scroll |
@@ -535,6 +788,38 @@ Tente:
 - verificar permissoes de acessibilidade no macOS;
 - executar em uma sessao grafica real, nao em terminal sem tela;
 - fornecer um backend customizado em `configurar`.
+
+### `Automacao de teclado indisponivel` / `Keyboard automation is unavailable`
+
+`escrever` conseguiu chegar ate a camada de teclado, mas o backend nao tem suporte a digitacao.
+
+Tente:
+
+- confirmar se `@nut-tree-fork/nut-js` instalou corretamente;
+- testar em uma sessao grafica real;
+- fornecer `typeText(text)` no backend customizado.
+
+### `Captura de audio indisponivel` / `Audio capture is unavailable`
+
+`mic()` nao conseguiu iniciar o gravador do sistema.
+
+Tente:
+
+- instalar `sox` no Windows/macOS;
+- instalar `alsa-utils` no Linux para ter `arecord`;
+- confirmar permissoes de microfone do sistema;
+- fornecer um `recorder` customizado.
+
+### `Transcricao offline indisponivel` / `Offline transcription is unavailable`
+
+O Vosk nao iniciou, o modelo nao foi encontrado, ou o modelo nao pode ser baixado.
+
+Tente:
+
+- manter `downloadModel: true` na primeira execucao;
+- configurar `modelPath` para um modelo Vosk local;
+- conferir permissao de escrita em `modelsDir` ou em `~/.olhax/models`;
+- usar `lang: "pt"` ou `lang: "en"`.
 
 ### `Captura de tela indisponivel` / `Screen capture is unavailable`
 
@@ -589,6 +874,7 @@ const meuBackendDeMouse = {
   async press(button) {},
   async release(button) {},
   async scroll(dx, dy) {},
+  async typeText(text) {},
   async screenshot() {}
 };
 ```
@@ -603,6 +889,7 @@ src/
   i18n.js               mensagens PT/EN
   vision/               reconhecimento visual
   automation/           mouse, scroll, drag e easing
+  audio/                microfone, VAD e transcricao offline
   utils/                argumentos e tempo
 ```
 

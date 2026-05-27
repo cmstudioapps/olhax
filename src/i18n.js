@@ -11,9 +11,37 @@ const messages = {
     pt: "Imagem alvo nao encontrada.",
     en: "Target image was not found."
   },
+  memoryNotFound: {
+    pt: "Posicao lembrada nao encontrada.",
+    en: "Remembered position was not found."
+  },
   automationUnavailable: {
     pt: "Automacao de mouse indisponivel. Instale/configure @nut-tree-fork/nut-js ou forneca um backend customizado.",
     en: "Mouse automation is unavailable. Install/configure @nut-tree-fork/nut-js or provide a custom backend."
+  },
+  keyboardUnavailable: {
+    pt: "Automacao de teclado indisponivel. Instale/configure @nut-tree-fork/nut-js ou forneca um backend customizado.",
+    en: "Keyboard automation is unavailable. Install/configure @nut-tree-fork/nut-js or provide a custom backend."
+  },
+  audioUnavailable: {
+    pt: "Captura de audio indisponivel. Instale/configure o gravador do sistema ou forneca um recorder customizado.",
+    en: "Audio capture is unavailable. Install/configure the system recorder or provide a custom recorder."
+  },
+  transcriptionUnavailable: {
+    pt: "Transcricao offline indisponivel. Verifique a instalacao do Vosk ou configure modelPath.",
+    en: "Offline transcription is unavailable. Check the Vosk installation or configure modelPath."
+  },
+  modelUnavailable: {
+    pt: "Idioma de transcricao indisponivel. Use 'pt', 'en' ou configure modelPath.",
+    en: "Transcription language is unavailable. Use 'pt', 'en', or configure modelPath."
+  },
+  modelMissing: {
+    pt: "Modelo de transcricao nao encontrado. Permita download automatico ou configure modelPath.",
+    en: "Transcription model was not found. Allow automatic download or configure modelPath."
+  },
+  missingText: {
+    pt: "Texto obrigatorio. Use escrever(destino, texto) ou escrever(base, alvo, texto).",
+    en: "Text is required. Use type(target, text) or type(base, target, text)."
   },
   screenshotUnavailable: {
     pt: "Captura de tela indisponivel no backend de automacao atual.",

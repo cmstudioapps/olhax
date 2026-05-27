@@ -14,6 +14,15 @@ export const comparar = api.comparar;
 export const compare = api.compare;
 export const centro = api.centro;
 export const center = api.center;
+export const lembrar = api.lembrar;
+export const remember = api.remember;
+export const lembrado = api.lembrado;
+export const remembered = api.remembered;
+export const recall = api.recall;
+export const esquecer = api.esquecer;
+export const forget = api.forget;
+export const listarLembrados = api.listarLembrados;
+export const listRemembered = api.listRemembered;
 
 export const mover = api.mover;
 export const move = api.move;
@@ -36,6 +45,11 @@ export const arrastar = api.arrastar;
 export const drag = api.drag;
 export const aguardar = api.aguardar;
 export const waitFor = api.waitFor;
+export const escrever = api.escrever;
+export const type = api.type;
+export const digitar = api.digitar;
+export const write = api.write;
+export const mic = api.mic;
 export const screenshot = api.screenshot;
 
 export default api;

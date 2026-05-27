@@ -5,6 +5,7 @@ async function main() {
   console.log(target);
 
   await olhax.click("screenshot.png", "icon.png");
+  await olhax.type({ x: 120, y: 260 }, "Hello OLHAX");
   await olhax.moveSmooth("screenshot.png", "icon.png", { duration: 400 });
   await olhax.scroll(-500);
   await olhax.drag({ x: 120, y: 220 }, { x: 420, y: 220 });

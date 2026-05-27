@@ -27,6 +27,7 @@ async function main() {
   });
 
   await olhax.doubleClick(button);
+  await olhax.type({ x: button.centerX, y: button.centerY + 48 }, "ready text");
 }
 
 main().catch(console.error);

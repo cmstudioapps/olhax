@@ -1,6 +1,6 @@
 {
   "name": "olhax",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Biblioteca simples de automacao visual e reconhecimento de imagens na tela.",
   "main": "src/index.js",
   "module": "src/index.mjs",
@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "test": "node test/run.mjs",
-    "lint": "node --check src/index.js && node --check src/index.mjs && node --check src/vision/input.js && node --check src/vision/template-engine.js && node --check src/automation/mouse.js"
+    "lint": "node --check src/index.js && node --check src/index.mjs && node --check src/audio/mic.js && node --check src/audio/model-manager.js && node --check src/audio/recorder.js && node --check src/audio/vosk-engine.js && node --check src/memory/store.js && node --check src/utils/args.js && node --check src/vision/input.js && node --check src/vision/template-engine.js && node --check src/automation/mouse.js"
   },
   "keywords": [
     "visual-automation",
@@ -32,11 +32,14 @@
     "automation",
     "olhax"
   ],
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "@nut-tree-fork/nut-js": "4.2.2",
-    "sharp": "0.33.5"
+    "adm-zip": "0.5.16",
+    "bancoz": "2.2.8",
+    "mic": "2.1.2",
+    "sharp": "0.33.5",
+    "vosk": "0.3.39"
   },
   "engines": {
     "node": ">=18"
