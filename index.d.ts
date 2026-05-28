@@ -3,8 +3,44 @@ import { EventEmitter } from "node:events";
 
 /** File path, base64 string, data:image/*;base64 URI, Buffer, or Uint8Array. */
 export type ImageInput = string | Buffer | Uint8Array;
+/** One target image, or variants of the same target image. */
+export type TargetInput = ImageInput | ImageInput[];
+/** One target text, or variants of the same target text. */
+export type TextTarget = string | string[];
 export type Language = "pt" | "en";
 export type EasingName = "linear" | "easeIn" | "easeOut" | "easeInOut";
+export type AreaName =
+  | "inferior"
+  | "superior"
+  | "esquerda"
+  | "direita"
+  | "centro"
+  | "inferior-esquerda"
+  | "inferior-direita"
+  | "superior-esquerda"
+  | "superior-direita"
+  | "bottom"
+  | "top"
+  | "left"
+  | "right"
+  | "center"
+  | "bottom-left"
+  | "bottom-right"
+  | "top-left"
+  | "top-right";
+
+export interface SearchRegion {
+  /** Left coordinate in pixels, or 0..1 for a percentage of the base image width. */
+  x: number;
+  /** Top coordinate in pixels, or 0..1 for a percentage of the base image height. */
+  y: number;
+  /** Width in pixels, or 0..1 for a percentage of the base image width. */
+  width: number;
+  /** Height in pixels, or 0..1 for a percentage of the base image height. */
+  height: number;
+}
+
+export type SearchArea = AreaName | SearchRegion;
 
 export interface Match {
   x: number;
@@ -15,15 +51,52 @@ export interface Match {
   centerY: number;
   score: number;
   scale?: number;
+  /** String target variant that produced this match, when available. */
+  target?: string;
+  /** Named search area that produced this match, when available. */
+  area?: string;
+  /** Pixel search region that produced this match, when available. */
+  region?: SearchRegion;
   remembered?: boolean;
   lembrado?: boolean;
   key?: string;
   updatedAt?: string;
 }
 
+export interface TextMatch extends Match {
+  text: string;
+  texto: string;
+  targetText: string;
+  textScore?: number;
+  confidence?: number;
+  recognizedText?: string;
+  ocr?: boolean;
+  kind?: "region" | "block" | "paragraph" | "line" | "word" | "words" | string;
+}
+
 export interface Point {
   x: number;
   y: number;
+}
+
+export interface OcrOptions {
+  lang?: string;
+  idioma?: string;
+  scale?: number;
+  cachePath?: string;
+  cacheMethod?: "write" | "readOnly" | "refresh" | "none" | string;
+  langPath?: string;
+  corePath?: string;
+  workerPath?: string;
+  dataPath?: string;
+  gzip?: boolean;
+  psm?: string | number;
+  oem?: number;
+  params?: Record<string, unknown>;
+  workerOptions?: Record<string, unknown>;
+  recognizeOptions?: Record<string, unknown>;
+  config?: string | Record<string, unknown>;
+  engine?: unknown;
 }
 
 export interface FindOptions {
@@ -32,12 +105,22 @@ export interface FindOptions {
   image?: ImageInput;
   screenshot?: ImageInput;
   print?: ImageInput;
-  alvo?: ImageInput;
-  target?: ImageInput;
-  template?: ImageInput;
-  icone?: ImageInput;
-  icon?: ImageInput;
+  alvo?: TargetInput;
+  target?: TargetInput;
+  template?: TargetInput;
+  icone?: TargetInput;
+  icon?: TargetInput;
   threshold?: number;
+  /** Named area or percentage/pixel rectangle that limits the visual search. */
+  area?: SearchArea;
+  /** Percentage/pixel rectangle that limits the visual search. */
+  region?: SearchRegion;
+  /** Portuguese alias for area/region. */
+  regiao?: SearchArea;
+  /** Alias for region. */
+  bounds?: SearchRegion;
+  /** Alias for area/region. */
+  where?: SearchArea;
   maxMatches?: number;
   minDistance?: number;
   searchStep?: number;
@@ -63,6 +146,16 @@ export interface FindOptions {
   memoryFile?: string;
   arquivoMemoria?: string;
   ttlMs?: number;
+  ocr?: OcrOptions;
+  ocrEngine?: unknown;
+  ocrLang?: string;
+  idiomaOcr?: string;
+  ocrScale?: number;
+  escalaOcr?: number;
+  textScale?: number;
+  textThreshold?: number;
+  ocrPsm?: string | number;
+  ocrParams?: Record<string, unknown>;
 }
 
 export interface MoveOptions extends FindOptions {
@@ -70,6 +163,16 @@ export interface MoveOptions extends FindOptions {
   easing?: EasingName | ((t: number) => number);
   minSteps?: number;
   speed?: number;
+  arrivalTolerance?: number;
+  toleranciaChegada?: number;
+  arrivalTimeout?: number;
+  tempoChegada?: number;
+  arrivalInterval?: number;
+  intervaloChegada?: number;
+  settleMs?: number;
+  aguardarEstavelMs?: number;
+  verifyArrival?: boolean;
+  verificarChegada?: boolean;
 }
 
 export interface WriteOptions extends MoveOptions {
@@ -79,6 +182,24 @@ export interface WriteOptions extends MoveOptions {
   content?: string | number | boolean;
   afterClickDelay?: number;
 }
+
+export interface TextFindOptions extends Omit<FindOptions, "alvo" | "target" | "template" | "icone" | "icon"> {
+  texto?: TextTarget;
+  text?: TextTarget;
+  textoAlvo?: TextTarget;
+  alvoTexto?: TextTarget;
+  targetText?: TextTarget;
+  textTarget?: TextTarget;
+  palavra?: TextTarget;
+  word?: TextTarget;
+  frase?: TextTarget;
+  phrase?: TextTarget;
+  query?: TextTarget;
+  busca?: TextTarget;
+  search?: TextTarget;
+}
+
+export interface TextMoveOptions extends TextFindOptions, Omit<MoveOptions, keyof FindOptions> {}
 
 export interface ConfigOptions extends FindOptions {
   timeout?: number;
@@ -91,6 +212,8 @@ export interface ConfigOptions extends FindOptions {
   write?: {
     afterClickDelay?: number;
   };
+  ocr?: OcrOptions;
+  ocrEngine?: unknown;
   scroll?: {
     amount?: number;
     stepDelay?: number;
@@ -189,17 +312,34 @@ export const config: typeof configurar;
 export function obterConfig(options?: ConfigOptions): ConfigOptions;
 export const getConfig: typeof obterConfig;
 
-export function encontrar(base: ImageInput, alvo: ImageInput, options?: FindOptions): Promise<Match | null>;
+export function encontrar(base: ImageInput, alvo: TargetInput, options?: FindOptions): Promise<Match | null>;
 export function encontrar(options: FindOptions): Promise<Match | null>;
 export const find: typeof encontrar;
 
-export function encontrarTodos(base: ImageInput, alvo: ImageInput, options?: FindOptions): Promise<Match[]>;
+export function encontrarTodos(base: ImageInput, alvo: TargetInput, options?: FindOptions): Promise<Match[]>;
 export function encontrarTodos(options: FindOptions): Promise<Match[]>;
 export const findAll: typeof encontrarTodos;
 
-export function comparar(base: ImageInput, alvo: ImageInput, options?: FindOptions): Promise<Match | null>;
+export function comparar(base: ImageInput, alvo: TargetInput, options?: FindOptions): Promise<Match | null>;
 export function comparar(options: FindOptions): Promise<Match | null>;
 export const compare: typeof comparar;
+
+export function encontrarTexto(texto: TextTarget, options?: TextFindOptions): Promise<TextMatch | null>;
+export function encontrarTexto(base: ImageInput, texto: TextTarget, options?: TextFindOptions): Promise<TextMatch | null>;
+export function encontrarTexto(options: TextFindOptions): Promise<TextMatch | null>;
+export const findText: typeof encontrarTexto;
+export const procurarTexto: typeof encontrarTexto;
+export const searchText: typeof encontrarTexto;
+
+export function encontrarTextos(texto: TextTarget, options?: TextFindOptions): Promise<TextMatch[]>;
+export function encontrarTextos(base: ImageInput, texto: TextTarget, options?: TextFindOptions): Promise<TextMatch[]>;
+export function encontrarTextos(options: TextFindOptions): Promise<TextMatch[]>;
+export const findAllText: typeof encontrarTextos;
+
+export function compararTexto(texto: TextTarget, options?: TextFindOptions): Promise<TextMatch | null>;
+export function compararTexto(base: ImageInput, texto: TextTarget, options?: TextFindOptions): Promise<TextMatch | null>;
+export function compararTexto(options: TextFindOptions): Promise<TextMatch | null>;
+export const compareText: typeof compararTexto;
 
 export function centro(match: Match): Point;
 export const center: typeof centro;
@@ -214,24 +354,29 @@ export function listarLembrados(options?: ConfigOptions): Promise<Record<string,
 export const listRemembered: typeof listarLembrados;
 
 export function mover(destino: Point | Match, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
-export function mover(alvo: ImageInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
-export function mover(base: ImageInput, alvo: ImageInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
+export function mover(alvo: TargetInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
+export function mover(base: ImageInput, alvo: TargetInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
 export const move: typeof mover;
 export const moverSuave: typeof mover;
 export const moveSmooth: typeof mover;
 
 export function clicar(destino: Point | Match, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
-export function clicar(alvo: ImageInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
-export function clicar(base: ImageInput, alvo: ImageInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
+export function clicar(alvo: TargetInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
+export function clicar(base: ImageInput, alvo: TargetInput, options?: MoveOptions): Promise<Point & { match?: Match | null }>;
+export function clicar(options: TextMoveOptions): Promise<Point & { match?: TextMatch | null }>;
 export const click: typeof clicar;
+export function clicarTexto(texto: TextTarget, options?: TextMoveOptions): Promise<Point & { match?: TextMatch | null }>;
+export function clicarTexto(base: ImageInput, texto: TextTarget, options?: TextMoveOptions): Promise<Point & { match?: TextMatch | null }>;
+export function clicarTexto(options: TextMoveOptions): Promise<Point & { match?: TextMatch | null }>;
+export const clickText: typeof clicarTexto;
 export const duploClicar: typeof clicar;
 export const doubleClick: typeof clicar;
 export const cliqueDireito: typeof clicar;
 export const rightClick: typeof clicar;
 
 export function escrever(destino: Point | Match, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
-export function escrever(alvo: ImageInput, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
-export function escrever(base: ImageInput, alvo: ImageInput, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
+export function escrever(alvo: TargetInput, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
+export function escrever(base: ImageInput, alvo: TargetInput, texto: string | number | boolean, options?: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
 export function escrever(options: WriteOptions): Promise<Point & { match?: Match | null; text: string }>;
 export const type: typeof escrever;
 export const digitar: typeof escrever;
@@ -246,16 +391,16 @@ export function scrollar(amount: number, options?: ConfigOptions): Promise<{ dx:
 export function scrollar(options: { x?: number; y?: number; dx?: number; dy?: number; horizontal?: number; vertical?: number }): Promise<{ dx: number; dy: number }>;
 export const scroll: typeof scrollar;
 
-export function arrastar(from: Point | Match | ImageInput, to: Point | Match | ImageInput, options?: MoveOptions): Promise<{ from: Point; to: Point }>;
+export function arrastar(from: Point | Match | TargetInput, to: Point | Match | TargetInput, options?: MoveOptions): Promise<{ from: Point; to: Point }>;
 export const drag: typeof arrastar;
 
-export function aguardar(base: ImageInput, alvo: ImageInput, options?: FindOptions): Promise<Match>;
-export function aguardar(alvo: ImageInput, options?: FindOptions): Promise<Match>;
+export function aguardar(base: ImageInput, alvo: TargetInput, options?: FindOptions): Promise<Match>;
+export function aguardar(alvo: TargetInput, options?: FindOptions): Promise<Match>;
 export function aguardar(options: FindOptions): Promise<Match>;
 export const waitFor: typeof aguardar;
 
-export function scrollUntil(base: ImageInput, alvo: ImageInput, options?: FindOptions): Promise<Match>;
-export function scrollUntil(alvo: ImageInput, options?: FindOptions): Promise<Match>;
+export function scrollUntil(base: ImageInput, alvo: TargetInput, options?: FindOptions): Promise<Match>;
+export function scrollUntil(alvo: TargetInput, options?: FindOptions): Promise<Match>;
 export function mic(options?: MicOptions): MicController;
 export function screenshot(options?: ConfigOptions): Promise<Buffer>;
 export const print: typeof screenshot;

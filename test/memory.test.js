@@ -58,11 +58,13 @@ test("lembrar salva match em JSON e encontrar recupera sem imagens", async () =>
 test("escrever usa posicao lembrada sem reenviar imagens", async () => {
   const memoryDir = await fs.mkdtemp(path.join(os.tmpdir(), "olhax-write-memory-"));
   const events = [];
+  let position = { x: 0, y: 0 };
   const backend = {
     async getPosition() {
-      return { x: 0, y: 0 };
+      return position;
     },
     async moveTo(x, y) {
+      position = { x, y };
       events.push({ type: "move", x, y });
     },
     async click(button) {

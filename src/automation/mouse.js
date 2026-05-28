@@ -1,27 +1,86 @@
 const { obterConfig } = require("../config");
-const { encontrar } = require("../vision");
+const { encontrar, encontrarTexto } = require("../vision");
 const { createError } = require("../i18n");
-const { parseTargetArgs, parseWriteArgs, isImageInput, toPoint } = require("../utils/args");
+const { parseTargetArgs, parseTextFindArgs, parseWriteArgs, hasTextTarget, isImageInput, toPoint } = require("../utils/args");
 const { sleep } = require("../utils/time");
 const { pathBetween } = require("./easing");
-const { getBackend } = require("./backend");
+const { getBackend, normalizeScreenshotResult } = require("./backend");
 
 async function resolvePoint(parsed, options) {
   if (parsed.point) return parsed.point;
 
   const findOptions = { ...parsed.find };
   if (!findOptions.base && findOptions.target) {
-    findOptions.base = await getBackend(options).screenshot();
+    findOptions.base = await screenshot(options);
   }
 
-  const match = await encontrar(findOptions);
-  if (!match) throw createError("notFound", options.language);
+  const textTarget = hasTextTarget(findOptions);
+  if (textTarget && !findOptions.base) {
+    findOptions.base = await screenshot(options);
+  }
+
+  const match = textTarget
+    ? await encontrarTexto(findOptions)
+    : await encontrar(findOptions);
+  if (!match) throw createError(textTarget ? "textNotFound" : "notFound", options.language);
 
   return {
     x: match.centerX,
     y: match.centerY,
     match
   };
+}
+
+function numberOption(options, keys, fallback) {
+  for (const key of keys) {
+    if (options[key] !== undefined) {
+      const value = Number(options[key]);
+      if (Number.isFinite(value)) return value;
+    }
+  }
+  return fallback;
+}
+
+function distance(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+async function waitForArrival(backend, destination, movement, language) {
+  if (movement.verifyArrival === false || movement.verificarChegada === false) return;
+
+  const target = { x: destination.x, y: destination.y };
+  if (!Number.isFinite(target.x) || !Number.isFinite(target.y)) return;
+
+  const tolerance = Math.max(0, numberOption(movement, ["arrivalTolerance", "toleranciaChegada"], 1));
+  const timeout = Math.max(0, numberOption(movement, ["arrivalTimeout", "tempoChegada"], 750));
+  const interval = Math.max(1, numberOption(movement, ["arrivalInterval", "intervaloChegada"], 15));
+  const retryInterval = Math.max(interval, numberOption(movement, ["arrivalRetryInterval", "intervaloReenvioChegada"], 80));
+  const settleMs = Math.max(0, numberOption(movement, ["settleMs", "aguardarEstavelMs"], 20));
+  const started = Date.now();
+  let lastRetry = 0;
+  let current = null;
+
+  await backend.moveTo(target.x, target.y);
+
+  while (true) {
+    current = toPoint(await backend.getPosition());
+    if (current && distance(current, target) <= tolerance) {
+      if (settleMs > 0) await sleep(settleMs);
+      return;
+    }
+
+    const elapsed = Date.now() - started;
+    if (elapsed >= timeout) {
+      throw createError("pointerNotArrived", language, { target, current, timeout });
+    }
+
+    if (elapsed - lastRetry >= retryInterval) {
+      await backend.moveTo(target.x, target.y);
+      lastRetry = elapsed;
+    }
+
+    await sleep(Math.min(interval, timeout - elapsed));
+  }
 }
 
 async function moverSuave(...args) {
@@ -42,6 +101,8 @@ async function moveParsedTarget(parsed, options) {
     await backend.moveTo(point.x, point.y);
     if (delay > 0) await sleep(delay);
   }
+
+  await waitForArrival(backend, destination, movement, options.language);
 
   return {
     x: destination.x,
@@ -68,6 +129,19 @@ async function clicar(...args) {
   }
 
   return moved;
+}
+
+async function clicarTexto(...args) {
+  const parsed = parseTextFindArgs(args);
+  const options = obterConfig(parsed);
+
+  if (!options.base) {
+    options.base = await screenshot(options);
+  }
+
+  const match = await encontrarTexto(options);
+  if (!match) throw createError("textNotFound", options.language);
+  return clicar(match, options);
 }
 
 async function duploClicar(...args) {
@@ -118,7 +192,8 @@ async function scrollar(amountOrOptions = 0, maybeOptions = {}) {
 
 async function screenshot(options = {}) {
   const config = obterConfig(options);
-  return getBackend(config).screenshot();
+  const image = await getBackend(config).screenshot();
+  return normalizeScreenshotResult(image, config.language);
 }
 
 async function resolveDragEndpoint(value, options, role) {
@@ -167,11 +242,14 @@ async function aguardar(...args) {
 
   while (Date.now() - started <= timeout) {
     const findOptions = parsed.find ? { ...parsed.find } : null;
-    if (findOptions && !findOptions.base && findOptions.target) {
+    const textTarget = findOptions && hasTextTarget(findOptions);
+    if (findOptions && !findOptions.base && (findOptions.target || textTarget)) {
       findOptions.base = await screenshot(options);
     }
 
-    const match = findOptions ? await encontrar(findOptions) : null;
+    const match = findOptions
+      ? (textTarget ? await encontrarTexto(findOptions) : await encontrar(findOptions))
+      : null;
     if (match) return match;
     await sleep(interval);
   }
@@ -235,6 +313,8 @@ module.exports = {
   moveSmooth: moverSuave,
   clicar,
   click: clicar,
+  clicarTexto,
+  clickText: clicarTexto,
   duploClicar,
   doubleClick: duploClicar,
   cliqueDireito,

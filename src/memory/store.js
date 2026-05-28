@@ -22,6 +22,12 @@ function toRememberedMatch(value) {
   const height = Number(value.height || 0);
   const centerX = Number.isFinite(Number(value.centerX)) ? Number(value.centerX) : x + width / 2;
   const centerY = Number.isFinite(Number(value.centerY)) ? Number(value.centerY) : y + height / 2;
+  const region = value.region && typeof value.region === "object" ? {
+    x: Number(value.region.x),
+    y: Number(value.region.y),
+    width: Number(value.region.width),
+    height: Number(value.region.height)
+  } : null;
 
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
 
@@ -33,6 +39,9 @@ function toRememberedMatch(value) {
     centerX,
     centerY,
     score: Number.isFinite(Number(value.score)) ? Number(value.score) : 1,
+    ...(typeof value.target === "string" ? { target: value.target } : {}),
+    ...(typeof value.area === "string" ? { area: value.area } : {}),
+    ...(region && Object.values(region).every(Number.isFinite) ? { region } : {}),
     remembered: true,
     lembrado: true,
     key: value.key

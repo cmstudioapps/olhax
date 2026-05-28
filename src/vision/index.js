@@ -1,6 +1,7 @@
 const templateEngine = require("./template-engine");
+const textEngine = require("./text-engine");
 const { obterConfig } = require("../config");
-const { parseFindArgs } = require("../utils/args");
+const { parseFindArgs, parseTextFindArgs } = require("../utils/args");
 const memory = require("../memory/store");
 
 function getEngine(options) {
@@ -33,6 +34,33 @@ async function comparar(...args) {
   return getEngine(options).compare(options);
 }
 
+async function encontrarTexto(...args) {
+  const options = obterConfig(parseTextFindArgs(args));
+  const key = memory.keyFromOptions(options);
+  const missingText = options.text === undefined || options.text === null;
+
+  if (key && (!options.base || missingText || memory.shouldPreferRemembered(options))) {
+    const remembered = await memory.lembrado(key, options);
+    if (remembered) return remembered;
+    if (!options.base || missingText) return null;
+  }
+
+  const match = await textEngine.find(options);
+  if (key && match) await memory.lembrar(key, match, options);
+  return match;
+}
+
+async function encontrarTextos(...args) {
+  const options = obterConfig(parseTextFindArgs(args));
+  const result = await textEngine.findAll(options);
+  return result.matches;
+}
+
+async function compararTexto(...args) {
+  const options = obterConfig({ threshold: -1, ...parseTextFindArgs(args) });
+  return textEngine.compare(options);
+}
+
 function centro(match) {
   if (!match) return null;
   return {
@@ -48,6 +76,14 @@ module.exports = {
   findAll: encontrarTodos,
   comparar,
   compare: comparar,
+  encontrarTexto,
+  findText: encontrarTexto,
+  procurarTexto: encontrarTexto,
+  searchText: encontrarTexto,
+  encontrarTextos,
+  findAllText: encontrarTextos,
+  compararTexto,
+  compareText: compararTexto,
   centro,
   center: centro,
   lembrar: memory.lembrar,
@@ -59,5 +95,6 @@ module.exports = {
   forget: memory.esquecer,
   listarLembrados: memory.listarLembrados,
   listRemembered: memory.listarLembrados,
-  templateEngine
+  templateEngine,
+  textEngine
 };

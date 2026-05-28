@@ -18,11 +18,13 @@ test("pathBetween cria pontos intermediarios e termina no destino", () => {
 
 test("moverSuave usa backend customizado e nao teleporta", async () => {
   const moves = [];
+  let position = { x: 0, y: 0 };
   const backend = {
     async getPosition() {
-      return { x: 0, y: 0 };
+      return position;
     },
     async moveTo(x, y) {
+      position = { x, y };
       moves.push({ x, y });
     },
     async click() {}
@@ -38,13 +40,53 @@ test("moverSuave usa backend customizado e nao teleporta", async () => {
   assert.ok(moves[0].x < 30);
 });
 
-test("escrever move, clica e digita no backend customizado", async () => {
+test("clicar aguarda o mouse chegar ao destino antes de clicar", async () => {
   const events = [];
+  let position = { x: 0, y: 0 };
   const backend = {
     async getPosition() {
-      return { x: 0, y: 0 };
+      return position;
     },
     async moveTo(x, y) {
+      events.push({ type: "move", x, y });
+      setTimeout(() => {
+        position = { x, y };
+        events.push({ type: "arrived", x, y });
+      }, 20);
+    },
+    async click(button) {
+      events.push({ type: "click", button, x: position.x, y: position.y });
+    }
+  };
+
+  await olhax.clicar({ x: 30, y: 10 }, {
+    automation: backend,
+    duration: 0,
+    minSteps: 2,
+    easing: "linear",
+    arrivalTimeout: 300,
+    arrivalInterval: 5,
+    settleMs: 0
+  });
+
+  const click = events.find((event) => event.type === "click");
+  const firstFinalArrival = events.findIndex((event) => event.type === "arrived" && event.x === 30 && event.y === 10);
+  const clickIndex = events.findIndex((event) => event.type === "click");
+
+  assert.ok(firstFinalArrival >= 0);
+  assert.ok(clickIndex > firstFinalArrival);
+  assert.deepEqual(click, { type: "click", button: "left", x: 30, y: 10 });
+});
+
+test("escrever move, clica e digita no backend customizado", async () => {
+  const events = [];
+  let position = { x: 0, y: 0 };
+  const backend = {
+    async getPosition() {
+      return position;
+    },
+    async moveTo(x, y) {
+      position = { x, y };
       events.push({ type: "move", x, y });
     },
     async click(button) {

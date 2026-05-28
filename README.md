@@ -177,7 +177,10 @@ Resultado:
   height: 32,
   centerX: 26,
   centerY: 36,
-  score: 0.94
+  score: 0.94,
+  target: "icone.png",
+  area: "centro",
+  region: { x: 455, y: 256, width: 455, height: 256 }
 }
 ```
 
@@ -187,6 +190,8 @@ Campos:
 - `width`, `height`: tamanho do alvo encontrado.
 - `centerX`, `centerY`: centro do alvo, ideal para clicar.
 - `score`: confianca do match, de `0` a `1`.
+- `target`: variante que gerou o match, quando o alvo foi passado como string.
+- `area`, `region`: regiao da busca que gerou o match, quando disponivel.
 
 `encontrar` / `find` retorna `null` quando nao acha. Acoes como `clicar` / `click` lancam erro quando o alvo nao e encontrado.
 
@@ -196,6 +201,33 @@ Encontrar uma imagem:
 
 ```js
 const alvo = await visao.encontrar("print.png", "icone.png");
+```
+
+Encontrar usando variantes do mesmo icone:
+
+```js
+const alvo = await visao.encontrar("print.png", [
+  "icone-claro.png",
+  "icone-escuro.png",
+  "icone-hover.png"
+]);
+```
+
+Limitar a busca a uma area da tela:
+
+```js
+const tela = await visao.print();
+
+const alvo = await visao.encontrar({
+  base: tela,
+  alvo: ["google2.png", "google1.png"],
+  area: "inferior",
+  threshold: 0.8
+});
+
+if (alvo) {
+  await visao.clicar(alvo);
+}
 ```
 
 Encontrar e lembrar a posicao para usar depois:
@@ -218,6 +250,26 @@ Clicar no alvo encontrado:
 
 ```js
 await visao.clicar("print.png", "icone.png");
+```
+
+Encontrar texto em uma imagem e clicar nele:
+
+```js
+const botao = await visao.encontrarTexto({
+  base: "print.png",
+  texto: "Salvar"
+});
+
+if (botao) {
+  await visao.clicar(botao);
+}
+```
+
+Ou clicando direto no texto da tela atual:
+
+```js
+await visao.clicarTexto("Salvar");
+await visao.clicar({ texto: "Entrar" });
 ```
 
 Tirar print e procurar nele:
@@ -350,6 +402,15 @@ const alvo = await visao.encontrar({
 });
 ```
 
+O alvo tambem pode misturar varias entradas em um array:
+
+```js
+const alvo = await visao.encontrar({
+  base: print,
+  alvo: ["icone.png", iconeBuffer, iconeBase64]
+});
+```
+
 English:
 
 ```js
@@ -394,6 +455,136 @@ const alvo = await visao.encontrar({
 });
 ```
 
+O `alvo` tambem pode ser um array com variantes do mesmo icone. A OLHAX compara todas e retorna a ocorrencia com melhor `score`.
+
+```js
+const alvo = await visao.encontrar({
+  base: "print.png",
+  alvo: ["icone.png", "icone-hover.png", "icone-dark.png"],
+  threshold: 0.85
+});
+```
+
+Quando o alvo for uma string, o match tambem informa qual variante venceu em `target`.
+
+```js
+{
+  x: 460,
+  y: 738,
+  centerX: 476,
+  centerY: 746,
+  score: 0.91,
+  target: "icone-dark.png"
+}
+```
+
+### Limitar area de busca
+
+Use `area` ou `region` quando uma variante pequena pode gerar falso positivo fora da parte esperada da tela. A busca fica limitada a essa regiao, mas `x`, `y`, `centerX` e `centerY` continuam sendo coordenadas absolutas da imagem original. Assim `clicar(match)` funciona sem conversao manual.
+
+```js
+const tela = await visao.print();
+
+const alvo = await visao.encontrar({
+  base: tela,
+  alvo: ["google2.png", "google1.png"],
+  area: "inferior",
+  threshold: 0.8
+});
+
+await visao.clicar(alvo);
+```
+
+Areas nomeadas usam tercos da imagem:
+
+```js
+area: "inferior"
+area: "superior"
+area: "esquerda"
+area: "direita"
+area: "centro"
+area: "inferior-esquerda"
+area: "inferior-direita"
+area: "superior-esquerda"
+area: "superior-direita"
+```
+
+Regiao manual em pixels:
+
+```js
+const alvo = await visao.encontrar({
+  base: tela,
+  alvo: "google.png",
+  region: {
+    x: 0,
+    y: 537,
+    width: 1366,
+    height: 231
+  }
+});
+```
+
+Regiao por porcentagem da imagem, usando numeros entre `0` e `1`:
+
+```js
+const alvo = await visao.encontrar({
+  base: tela,
+  alvo: "google.png",
+  area: {
+    x: 0,
+    y: 0.7,
+    width: 1,
+    height: 0.3
+  }
+});
+```
+
+Tambem funcionam os aliases `regiao`, `bounds` e `where`.
+
+Sem `area`/`region`, a OLHAX divide internamente a imagem em 9 regioes, procura em todas e escolhe o melhor resultado. O match retorna `area` e `region` para mostrar onde houve mais compatibilidade. Isso mantem a compatibilidade com a busca global anterior; para evitar um falso positivo conhecido, passe `area` ou `region` explicitamente.
+
+As mesmas opcoes passam por `encontrarTodos`, `comparar`, `clicar`, `moverSuave`, `aguardar` e `arrastar` quando essas funcoes precisam resolver uma imagem antes da acao.
+
+### Busca por texto / OCR
+
+`encontrarTexto` / `findText` procura uma palavra ou frase dentro da imagem usando OCR. Sem `area`/`region`, a OLHAX tambem divide a imagem em 9 regioes, usa o centro do texto reconhecido para escolher a regiao e retorna a palavra/frase mais compativel.
+
+```js
+const salvar = await visao.encontrarTexto({
+  base: "print.png",
+  texto: "Salvar",
+  threshold: 0.82
+});
+
+if (salvar) {
+  await visao.clicar(salvar);
+}
+```
+
+Tambem da para clicar direto:
+
+```js
+await visao.clicarTexto("Salvar");
+await visao.clicar({ texto: "Entrar" });
+```
+
+O match de texto tem `x`, `y`, `width`, `height`, `centerX`, `centerY`, `score`, `text`, `targetText`, `confidence`, `area` e `region`. Assim ele continua compativel com `clicar(match)`.
+
+Opcoes uteis:
+
+```js
+await visao.encontrarTexto({
+  base: tela,
+  texto: ["Salvar", "Save"],
+  area: "inferior",
+  ocrLang: "por",
+  ocrScale: 2,
+  threshold: 0.8
+});
+```
+
+Por padrao o OCR usa `tesseract.js` com idioma `eng`. Para textos em portugues com acentos, use `ocrLang: "por"` ou `ocrLang: "por+eng"`. Se quiser plugar outro OCR, passe `ocrEngine` com um metodo `recognize(image, request)`.
+
 ### `encontrarTodos` / `findAll`
 
 Retorna todos os matches aceitos.
@@ -434,6 +625,8 @@ const alvo = await visao.encontrar({
 Opcoes uteis:
 
 - `threshold`: confianca minima para aceitar o match.
+- `area`: area nomeada ou retangulo percentual/pixel para limitar a busca.
+- `region`: retangulo `{ x, y, width, height }` em pixels ou porcentagem.
 - `scaleTolerance`: tenta variacoes pequenas de escala.
 - `scales`: lista manual de escalas, por exemplo `[1, 0.9, 1.1]`.
 - `normalize`: normaliza contraste.
@@ -739,6 +932,8 @@ No Windows/macOS, o pacote `mic` normalmente usa `sox`. No Linux, usa `arecord`/
 
 `moverSuave` / `moveSmooth` nunca teleporta diretamente para o destino. Ele calcula pontos intermediarios entre a posicao atual do cursor e o destino.
 
+Antes de retornar, a OLHAX tambem confirma com `getPosition()` se o cursor chegou ao destino. Por isso `clicar`, `duploClicar`, `escrever` e `arrastar` nao disparam a proxima acao enquanto o mouse ainda esta no meio do caminho.
+
 ```js
 await visao.moverSuave({
   x: 120,
@@ -756,6 +951,11 @@ Opcoes:
 - `easing`: `"linear"`, `"easeIn"`, `"easeOut"` ou `"easeInOut"`.
 - `minSteps`: minimo de pontos intermediarios.
 - `speed`: multiplicador simples para ajustar a quantidade de passos por distancia.
+- `arrivalTolerance`: tolerancia em pixels para considerar que o cursor chegou.
+- `arrivalTimeout`: tempo maximo para aguardar a chegada do cursor.
+- `arrivalInterval`: intervalo entre leituras de `getPosition()`.
+- `settleMs`: pausa curta depois que a chegada foi confirmada.
+- `verifyArrival`: use `false` apenas em backends customizados que nao conseguem reportar a posicao atual.
 
 Tambem funciona passando uma imagem:
 
@@ -838,6 +1038,10 @@ visao.configurar({
   write: {
     afterClickDelay: 80
   },
+  ocr: {
+    lang: "eng",
+    scale: 1
+  },
   mic: {
     sampleRate: 16000,
     lang: "pt",
@@ -876,6 +1080,9 @@ await visao.clicar("print.png", "icone.png", {
 | `encontrar` | `find` | Encontra o primeiro match |
 | `encontrarTodos` | `findAll` | Encontra varios matches |
 | `comparar` | `compare` | Retorna o melhor candidato |
+| `encontrarTexto` | `findText` | Encontra texto por OCR |
+| `encontrarTextos` | `findAllText` | Encontra textos por OCR |
+| `compararTexto` | `compareText` | Retorna o melhor texto por OCR |
 | `centro` | `center` | Retorna `{ x, y }` do centro |
 | `lembrar` | `remember` | Salva uma posicao em JSON |
 | `lembrado` | `remembered` | Recupera uma posicao salva |
@@ -885,6 +1092,7 @@ await visao.clicar("print.png", "icone.png", {
 | `print` | `capture` | Captura a tela e retorna um Buffer |
 | `capturar` | `screenshot` | Alias de captura de tela |
 | `clicar` | `click` | Move e clica |
+| `clicarTexto` | `clickText` | Move e clica no texto |
 | `duploClicar` | `doubleClick` | Move e da duplo clique |
 | `cliqueDireito` | `rightClick` | Move e clica com botao direito |
 | `escrever` | `type` | Move, clica e digita texto |

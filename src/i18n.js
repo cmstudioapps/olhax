@@ -43,6 +43,18 @@ const messages = {
     pt: "Texto obrigatorio. Use escrever(destino, texto) ou escrever(base, alvo, texto).",
     en: "Text is required. Use type(target, text) or type(base, target, text)."
   },
+  missingTextTarget: {
+    pt: "Imagem base e texto alvo sao obrigatorios.",
+    en: "Base image and target text are required."
+  },
+  textNotFound: {
+    pt: "Texto alvo nao encontrado.",
+    en: "Target text was not found."
+  },
+  ocrUnavailable: {
+    pt: "Reconhecimento de texto indisponivel. Instale/configure tesseract.js ou forneca um ocrEngine customizado.",
+    en: "Text recognition is unavailable. Install/configure tesseract.js or provide a custom ocrEngine."
+  },
   screenshotUnavailable: {
     pt: "Captura de tela indisponivel no backend de automacao atual.",
     en: "Screen capture is unavailable in the current automation backend."
@@ -54,6 +66,10 @@ const messages = {
   timeout: {
     pt: "Tempo limite atingido aguardando a imagem aparecer.",
     en: "Timed out while waiting for the image to appear."
+  },
+  pointerNotArrived: {
+    pt: "O mouse nao chegou ao destino antes do tempo limite.",
+    en: "The mouse did not reach the destination before the timeout."
   }
 };
 

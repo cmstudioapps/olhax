@@ -1,7 +1,104 @@
 const { createError } = require("../i18n");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
 const sharp = require("sharp");
 
 let cached;
+
+function binaryToBuffer(value) {
+  if (Buffer.isBuffer(value)) return value;
+  if (value instanceof ArrayBuffer) return Buffer.from(value);
+  if (ArrayBuffer.isView(value)) {
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+  }
+  return null;
+}
+
+function hasRawImageData(value) {
+  return Boolean(
+    value
+    && Number.isFinite(value.width)
+    && Number.isFinite(value.height)
+    && binaryToBuffer(value.data)
+  );
+}
+
+async function rawImageToPng(image) {
+  const channels = Number.isFinite(image.channels) ? image.channels : 4;
+  return sharp(binaryToBuffer(image.data), {
+    raw: {
+      width: image.width,
+      height: image.height,
+      channels
+    }
+  }).png().toBuffer();
+}
+
+async function normalizeScreenshotResult(image, language, options = {}) {
+  const directBuffer = binaryToBuffer(image);
+  if (directBuffer) return directBuffer;
+
+  if (typeof image === "string") {
+    return fs.readFile(image);
+  }
+
+  if (image && typeof image.path === "string") {
+    return fs.readFile(image.path);
+  }
+
+  if (image && typeof image.toRGB === "function" && !options.skipToRGB) {
+    const rgb = await image.toRGB();
+    return normalizeScreenshotResult(rgb, language, { skipToRGB: true });
+  }
+
+  if (hasRawImageData(image)) {
+    return rawImageToPng(image);
+  }
+
+  if (image && image.data !== undefined) {
+    const data = binaryToBuffer(image.data);
+    if (data) return data;
+  }
+
+  throw createError("screenshotUnavailable", language);
+}
+
+async function captureWithTempFile(screen, nut, language) {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "olhax-screenshot-"));
+  try {
+    const fileName = "screen";
+    const fileFormat = (nut.FileType && nut.FileType.PNG) || ".png";
+    const image = await screen.capture(fileName, fileFormat, tempDir);
+    return normalizeScreenshotResult(image, language);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+function isMissingCaptureFileNameError(error) {
+  return Boolean(
+    error
+    && (
+      error.code === "ERR_INVALID_ARG_TYPE"
+      || /path.*undefined/i.test(error.message || "")
+      || /filename|fileName/i.test(error.message || "")
+    )
+  );
+}
+
+async function captureScreen(screen, nut, language) {
+  if (screen.capture.length > 0) {
+    return captureWithTempFile(screen, nut, language);
+  }
+
+  try {
+    return normalizeScreenshotResult(await screen.capture(), language);
+  } catch (error) {
+    if (!isMissingCaptureFileNameError(error)) throw error;
+    return captureWithTempFile(screen, nut, language);
+  }
+}
 
 function buttonValue(nut, button = "left") {
   const key = String(button).toLowerCase();
@@ -11,12 +108,14 @@ function buttonValue(nut, button = "left") {
   return Button.LEFT || Button.Left || Button.left || 0;
 }
 
-function createNutBackend(language) {
-  let nut;
-  try {
-    nut = require("@nut-tree-fork/nut-js");
-  } catch (error) {
-    throw createError("automationUnavailable", language, { cause: error });
+function createNutBackend(language, nutOverride) {
+  let nut = nutOverride;
+  if (!nut) {
+    try {
+      nut = require("@nut-tree-fork/nut-js");
+    } catch (error) {
+      throw createError("automationUnavailable", language, { cause: error });
+    }
   }
 
   const { mouse, Point, screen, keyboard } = nut;
@@ -83,33 +182,7 @@ function createNutBackend(language) {
         throw createError("screenshotUnavailable", language);
       }
 
-      const image = await screen.capture();
-      if (Buffer.isBuffer(image)) return image;
-      if (image && Buffer.isBuffer(image.data) && image.width && image.height) {
-        return sharp(image.data, {
-          raw: {
-            width: image.width,
-            height: image.height,
-            channels: image.channels || 4
-          }
-        }).png().toBuffer();
-      }
-      if (image && Buffer.isBuffer(image.data)) return image.data;
-      if (image && typeof image.toRGB === "function") {
-        const rgb = await image.toRGB();
-        if (rgb && Buffer.isBuffer(rgb.data) && rgb.width && rgb.height) {
-          return sharp(rgb.data, {
-            raw: {
-              width: rgb.width,
-              height: rgb.height,
-              channels: rgb.channels || 3
-            }
-          }).png().toBuffer();
-        }
-        return rgb.data || rgb;
-      }
-
-      throw createError("screenshotUnavailable", language);
+      return captureScreen(screen, nut, language);
     }
   };
 }
@@ -122,5 +195,7 @@ function getBackend(options = {}) {
 
 module.exports = {
   getBackend,
-  createNutBackend
+  createNutBackend,
+  normalizeScreenshotResult,
+  captureScreen
 };

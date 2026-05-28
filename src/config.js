@@ -10,7 +10,12 @@ const state = {
     duration: 350,
     easing: "easeInOut",
     minSteps: 18,
-    speed: 1
+    speed: 1,
+    arrivalTolerance: 1,
+    arrivalTimeout: 750,
+    arrivalInterval: 15,
+    settleMs: 20,
+    verifyArrival: true
   },
   click: {
     delay: 80,
@@ -18,6 +23,15 @@ const state = {
   },
   write: {
     afterClickDelay: 80
+  },
+  ocr: {
+    lang: "eng",
+    scale: 1,
+    cachePath: undefined,
+    cacheMethod: "write",
+    psm: undefined,
+    params: undefined,
+    workerOptions: undefined
   },
   mic: {
     sampleRate: 16000,
